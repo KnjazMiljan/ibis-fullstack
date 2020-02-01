@@ -19,9 +19,9 @@
                                     @enderror"
                                     name="email"
                                     value="{{ old('email') }}"
-                                    required autocomplete="email"
+                                    required
+                                    autocomplete="email"
                                     placeholder="Username"
-                                    autofocus
                                 >
                                 @error('email')
                                     <span class="invalid-feedback" role="alert">
@@ -43,8 +43,8 @@
                                 >
                                 <div class="input-group-append" id="togglePasswordVisibility" title="">
                                     <span class="input-group-text btn">
-                                        <i class="fa fa-eye fa_custom" id="fa-eye" aria-hidden="true"></i>
-                                        <i class="fa fa-eye-slash fa_custom" id="fa-eye-slash" aria-hidden="true"></i>
+                                        <i class="fa fa-eye fa_custom" id="fa-eye"></i>
+                                        <i class="fa fa-eye-slash fa_custom fa_hidden" id="fa-eye-slash"></i>
                                     </span>
                                 </div>
                                 @error('password')

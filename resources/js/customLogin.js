@@ -1,5 +1,4 @@
 $(document).ready(function () {
-    $('#fa-eye-slash').hide();
     $("#password")[0].placeholder = "Password";
     $('#togglePasswordVisibility')[0].title = "Show";
 

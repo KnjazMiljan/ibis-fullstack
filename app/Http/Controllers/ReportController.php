@@ -32,11 +32,15 @@ class ReportController extends Controller
         foreach ($contracts as $contract) {
             array_push($data, [
                 'contractId' => $contract->id,
-                'macAddress' => $contract->macAddress->mac_address,
+                'macAddress' => [
+                    'value' => $contract->macAddress->mac_address,
+                    'id' => $contract->macAddress->id
+                ]
+
+
             ]);
         }
 
         return view('report', compact('data'));
-//        return view('report');
     }
 }

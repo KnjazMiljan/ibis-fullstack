@@ -87,16 +87,36 @@
 @section('scripts')
     <script src="{{ asset('js/hgwCharts.js') }}"></script>
     <script>
-        const data = {!! isset($data) ? json_encode($data) : [] !!};
+        const macsAndContracts = {!! isset($data) ? json_encode($data) : [] !!};
         let searchableContracts = [];
-        data.map(obj => {
-            searchableContracts.push(obj.contractId.toString())
-        });
+        let searchableMacAddresses = [];
+        let macAddressSpecs = [];
+        // Use to fetch ID and send it to backend
 
-        function setInputFilter(textInput, inputFilter, data) {
+        macsAndContracts.map(obj => {
+            searchableContracts.push(obj.contractId.toString());
+            searchableMacAddresses.push(obj.macAddress.value);
+            macAddressSpecs.push(obj.macAddress);
+        });
+// console.log(macAddressSpecs);
+
+        setInputFilter($('#contractId')[0], function(value) {
+            // Allow only digits which does not start with 0 or nothing
+            return /^[1-9][0-9]{0,10}|^$/.test(value);
+        }, searchableContracts, true, macsAndContracts, $('#macAddress')[0]);
+
+        setInputFilter($('#macAddress')[0], function(value) {
+            // Allow only digits which does not start with 0 or nothing
+            // return /^([0-9a-fA-F]:)|:$/.test(value);
+            return isValidMacAddress(value);
+        }, searchableMacAddresses, macsAndContracts, $('#macAddress')[0]);
+
+
+
+        function setInputFilter(inputElement, inputFilter, data, isNumericFilter = false, valueObjects = null, outputElement = null) {
 
             ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function(event) {
-                textInput.addEventListener(event, function() {
+                inputElement.addEventListener(event, function() {
                     if (inputFilter(this.value)) {
                         this.oldValue = this.value;
                         this.oldSelectionStart = this.selectionStart;
@@ -107,86 +127,125 @@
                     } else {
                         this.value = "";
                     }
-                    autocomplete(textInput, data);
+
+                    // separate this part into autocomplete() function with args:
+                    if (isNumericFilter && /^[1-9][0-9]{0,10}$/.test(this.value)) {
+                        autocomplete(inputElement, data, outputElement, valueObjects);
+                    } else {
+                        autocomplete(inputElement, data, outputElement, valueObjects);
+                    }
                 });
             });
         }
 
-        function isValidMacAddress(value) {
-            return /^([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])$/.test(value);
+        function isValidMacColonHexadecimalNotationFormat(value) {
+            // <-- ORIGINAL
+            //    return /^([0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F])$/.test(value);
+
+            return (/^([0-9a-fA-F][0-9a-fA-F]:){1,5}([0-9a-fA-F]{0,2})$/.test(value))
+                || (/^([0-9a-fA-F]{1,2})$/.test(value))
+                || (/^$/.test(value))
         }
 
-        // Allow only digits which does not start with 0 or nothing
-        setInputFilter($('#contractId')[0], function(value) {
-            return /^[1-9][0-9]{0,10}|^$/.test(value);
-        }, searchableContracts);
+        function isValidMacHypenHexadecimalNotationFormat(value) {
+            return (/^([0-9a-fA-F][0-9a-fA-F]-){1,5}([0-9a-fA-F]{0,2})$/.test(value))
+                || (/^([0-9a-fA-F]{1,2})$/.test(value))
+                || (/^$/.test(value))
+        }
 
-        function autocomplete(inp, arr) {
-            /*the autocomplete function takes two arguments,
-            the text field element and an array of possible autocompleted values:*/
+        function isValidMacPeriodSeparatedHexadecimalNotationFormat(value) {
+            // Adept to regulate the format xxx.xxx.xxx.xxx
+            return (/^([0-9a-fA-F][0-9a-fA-F]-){1,5}([0-9a-fA-F]{0,2})$/.test(value))
+                || (/^([0-9a-fA-F]{1,2})$/.test(value))
+                || (/^$/.test(value))
+        }
+
+        function isValidMacAddress(value) {
+
+           return (
+               isValidMacColonHexadecimalNotationFormat(value)
+               || isValidMacHypenHexadecimalNotationFormat(value)
+               || isValidMacPeriodSeparatedHexadecimalNotationFormat(value)
+           );
+        }
+
+
+
+
+        function autocomplete(inputElement, data, outputElement = null, valueObjects = null) {
             var currentFocus;
             /*execute a function when someone writes in the text field:*/
-            inp.addEventListener("input", function(e) {
-                var a, b, i, val = this.value;
-                /*close any already open lists of autocompleted values*/
-                closeAllLists();
-                if (!val) { return false;}
-                currentFocus = -1;
-                /*create a DIV element that will contain the items (values):*/
-                a = document.createElement("DIV");
-                a.setAttribute("id", this.id + "autocomplete-list");
-                a.setAttribute("class", "autocomplete-items");
-                /*append the DIV element as a child of the autocomplete container:*/
-                this.parentNode.appendChild(a);
-                /*for each item in the array...*/
-                for (i = 0; i < arr.length; i++) {
-                    /*check if the item starts with the same letters as the text field value:*/
-                    if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
-                        /*create a DIV element for each matching element:*/
-                        b = document.createElement("DIV");
-                        /*make the matching letters bold:*/
-                        b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
-                        b.innerHTML += arr[i].substr(val.length);
-                        /*insert a input field that will hold the current array item's value:*/
-                        b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
-                        /*execute a function when someone clicks on the item value (DIV element):*/
-                        b.addEventListener("click", function(e) {
-                            /*insert the value for the autocomplete text field:*/
-                            inp.value = this.getElementsByTagName("input")[0].value;
+            var a, b, i, val = inputElement.value;
+            /*close any already open lists of autocompleted values*/
+            closeAllLists();
+            if (!val) { return false;}
+            currentFocus = -1;
+            /*create a DIV element that will contain the items (values):*/
+            a = document.createElement("DIV");
+            a.setAttribute("id", this.id + "autocomplete-list");
+            a.setAttribute("class", "autocomplete-items");
+            /*append the DIV element as a child of the autocomplete container:*/
+            inputElement.parentNode.appendChild(a);
+            /*for each item in the array...*/
+            for (i = 0; i < data.length; i++) {
+                /*check if the item starts with the same letters as the text field value:*/
+                if (data[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+                    /*create a DIV element for each matching element:*/
+                    b = document.createElement("DIV");
+                    /*make the matching letters bold:*/
+                    b.innerHTML = "<strong>" + data[i].substr(0, val.length) + "</strong>";
+                    b.innerHTML += data[i].substr(val.length);
+                    /*insert a input field that will hold the current array item's value:*/
+                    b.innerHTML += "<input type='hidden' value='" + data[i] + "'>";
+                    /*execute a function when someone clicks on the item value (DIV element):*/
+                    b.addEventListener("click", function(e) {
+                        /*insert the value for the autocomplete text field:*/
+                        inputElement.value = this.getElementsByTagName("input")[0].value;
 
-                            /*close the list of autocompleted values,
-                            (or any other open lists of autocompleted values:*/
-                            closeAllLists();
-                        });
-                        a.appendChild(b);
-                    }
+                        if(outputElement !== null) {
+                            let contractId;
+                            contractId = parseInt(inputElement.value)
+                            valueObjects.map(valueObject => {
+                                outputElement.value = valueObject.contractId === contractId ? valueObject.macAddress : outputElement.value
+                            });
+                        }
+
+
+                        // console.log(contractId)
+                        // console.log(valueObjects)
+                        // console.log(outputElement)
+
+                        /*close the list of autocompleted values,
+                        (or any other open lists of autocompleted values:*/
+                        closeAllLists();
+                    });
+                    a.appendChild(b);
                 }
-            });
+            }
             /*execute a function presses a key on the keyboard:*/
-            inp.addEventListener("keydown", function(e) {
-                var x = document.getElementById(this.id + "autocomplete-list");
-                if (x) x = x.getElementsByTagName("div");
-                if (e.keyCode == 40) {
-                    /*If the arrow DOWN key is pressed,
-                    increase the currentFocus variable:*/
-                    currentFocus++;
-                    /*and and make the current item more visible:*/
-                    addActive(x);
-                } else if (e.keyCode == 38) { //up
-                    /*If the arrow UP key is pressed,
-                    decrease the currentFocus variable:*/
-                    currentFocus--;
-                    /*and and make the current item more visible:*/
-                    addActive(x);
-                } else if (e.keyCode == 13) {
-                    /*If the ENTER key is pressed, prevent the form from being submitted,*/
-                    e.preventDefault();
-                    if (currentFocus > -1) {
-                        /*and simulate a click on the "active" item:*/
-                        if (x) x[currentFocus].click();
-                    }
+            var x = document.getElementById(inputElement.id + "autocomplete-list");
+            if (x) x = x.getElementsByTagName("div");
+            if (event.keyCode == 40) {
+                /*If the arrow DOWN key is pressed,
+                increase the currentFocus variable:*/
+                currentFocus++;
+                /*and and make the current item more visible:*/
+                addActive(x);
+            } else if (event.keyCode == 38) { //up
+                /*If the arrow UP key is pressed,
+                decrease the currentFocus variable:*/
+                currentFocus--;
+                /*and and make the current item more visible:*/
+                addActive(x);
+            } else if (event.keyCode == 13) {
+                /*If the ENTER key is pressed, prevent the form from being submitted,*/
+                event.preventDefault();
+                if (currentFocus > -1) {
+                    /*and simulate a click on the "active" item:*/
+                    if (x) x[currentFocus].click();
                 }
-            });
+            }
+
             function addActive(x) {
                 /*a function to classify an item as "active":*/
                 if (!x) return false;
@@ -203,19 +262,19 @@
                     x[i].classList.remove("autocomplete-active");
                 }
             }
-            function closeAllLists(elmnt) {
+            function closeAllLists(element) {
                 /*close all autocomplete lists in the document,
                 except the one passed as an argument:*/
                 var x = document.getElementsByClassName("autocomplete-items");
                 for (var i = 0; i < x.length; i++) {
-                    if (elmnt != x[i] && elmnt != inp) {
+                    if (element !== x[i] && element !== inputElement) {
                         x[i].parentNode.removeChild(x[i]);
                     }
                 }
             }
             /*execute a function when someone clicks in the document:*/
-            document.addEventListener("click", function (e) {
-                closeAllLists(e.target);
+            document.addEventListener("click", function (event) {
+                closeAllLists(event.target);
             });
         }
 
