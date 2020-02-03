@@ -25,23 +25,23 @@ class DatabaseSeeder extends Seeder
         }
 
         foreach($macAddresses as $macAddress) {
-            factory(App\HgwBitrate::class, 15)->create([ //change to 150 to test results on charts
+            factory(App\HgwBitrate::class, 150)->create([
                 'mac_address_id' => $macAddress->id
             ]);
 
-            factory(App\HgwRss::class, 15)->create([ //change to 150 to test results on charts
+            factory(App\HgwRss::class, 150)->create([
                 'mac_address_id' => $macAddress->id
             ]);
 
-            factory(App\HgwNumberOfRetransmissions::class, 15)->create([ //change to 150 to test results on charts
+            factory(App\HgwNumberOfRetransmissions::class, 150)->create([
                 'mac_address_id' => $macAddress->id
             ]);
 
-            factory(App\HgwInterferenceNetworkRss::class, 15)->create([ //change to 150 to test results on charts
+            factory(App\HgwInterferenceNetworkRss::class, 150)->create([
                 'mac_address_id' => $macAddress->id
             ]);
 
-            factory(App\HgwNumberOfClients::class, 15)->create([ //change to 150 to test results on charts
+            factory(App\HgwNumberOfClients::class, 150)->create([
                 'mac_address_id' => $macAddress->id
             ]);
         }

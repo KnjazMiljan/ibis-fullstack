@@ -14,4 +14,4 @@
 Auth::routes();
 
 Route::get('/', 'ReportController@index')->name('report');
-Route::get('/get-contracts/{id}', 'ContractController@getAll');
+Route::post('/reports', 'ReportController@reports')->name('reports');

@@ -14,6 +14,7 @@ const mix = require('laravel-mix');
 mix.js('resources/js/app.js', 'public/js')
     .js('resources/js/customLogin.js', 'public/js')
     .js('resources/js/hgwCharts.js', 'public/js')
+    .copy('resources/js/customReport.js', 'public/js')
     .copy('resources/css/custom.css', 'public/css')
     .sass('resources/sass/app.scss', 'public/css')
     .sourceMaps();
